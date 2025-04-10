@@ -50,13 +50,14 @@ class AuthService {
   getBearerToken(useSecondUser = false) {
     cy.log(`Running getBearerToken${useSecondUser ? 'SecondUser' : ''}`);
     
+    // Check for command line credentials first
     const username = useSecondUser 
       ? Cypress.env("secondGlobalUsername") || Cypress.env("USERNAME2")
-      : Cypress.env("globalUsername") || Cypress.env("USERNAME");
+      : Cypress.env("login_username") || Cypress.env("globalUsername") || Cypress.env("USERNAME");
     
     const password = useSecondUser 
       ? Cypress.env("secondGlobalPassword") || Cypress.env("PASSWORD2")
-      : Cypress.env("globalPassword") || Cypress.env("PASSWORD");
+      : Cypress.env("login_password") || Cypress.env("globalPassword") || Cypress.env("PASSWORD");
     
     const clientId = Cypress.env("globalClientId") || this.config.clientId;
     
@@ -146,10 +147,19 @@ class AuthService {
   doLogin(baseUrl) {
     baseUrl = baseUrl || Cypress.config('baseUrl');
     const realm = Cypress.env("globalRealm") || this.config.realm;
-    const username = Cypress.env("globalUsername") || Cypress.env("USERNAME");
-    const password = Cypress.env("globalPassword") || Cypress.env("PASSWORD");
+    
+    // Check for command line arguments, but fall back to existing credentials if not present
+    const username = Cypress.env("login_username") || Cypress.env("globalUsername") || Cypress.env("USERNAME");
+    const password = Cypress.env("login_password") || Cypress.env("globalPassword") || Cypress.env("PASSWORD");
+    const email = Cypress.env("login_email") || username; // Optional email override, defaults to username
 
     cy.log(`Logging in to ${realm} realm`);
+    if (Cypress.env("login_username") || Cypress.env("login_email") || Cypress.env("login_password")) {
+      cy.log('Using command line credentials');
+      if (Cypress.env("login_email")) cy.log(`Using email: ${email}`);
+      if (Cypress.env("login_username")) cy.log(`Using username: ${username}`);
+      if (Cypress.env("login_password")) cy.log('Using password from command line');
+    }
 
     // Handle different login flows based on realm
     if (realm === "PathWave") {
@@ -183,8 +193,14 @@ class AuthService {
         timeout: 60000 // Increase timeout for initial page load
       });
       
-      // Wait a moment for redirects to complete and check the actual URL
-      cy.wait(3000); // Give time for any redirects
+      // Add extra wait time in headless mode
+      const isHeadless = Cypress.browser && Cypress.browser.isHeadless;
+      if (isHeadless) {
+        cy.log('Running in headless mode, adding extra wait time');
+        cy.wait(10000);
+      } else {
+        cy.wait(3000); // Standard wait in interactive mode
+      }
       
       // Log page details for debugging
       cy.log('Checking page after initial load');
@@ -217,13 +233,13 @@ class AuthService {
                   
                   if ($body.find('input#email[type="email"]').length) {
                     cy.log('Found input#email[type="email"]');
-                    cy.get('input#email[type="email"]').type(username, { log: false });
+                    cy.get('input#email[type="email"]').type(email || username, { log: false });
                   } else if ($body.find('input#email').length) {
                     cy.log('Found input#email');
-                    cy.get('input#email').type(username, { log: false });
+                    cy.get('input#email').type(email || username, { log: false });
                   } else if ($body.find('input[type="email"]').length) {
                     cy.log('Found input[type="email"]');
-                    cy.get('input[type="email"]').type(username, { log: false });
+                    cy.get('input[type="email"]').type(email || username, { log: false });
                   } else {
                     // Last resort: get all inputs and find the one that looks like an email field
                     cy.log('Trying to find any input that might be an email field');
@@ -236,7 +252,7 @@ class AuthService {
                       
                       if (emailInput.length) {
                         cy.log(`Found likely email input with id="${emailInput[0].id}" name="${emailInput[0].name}"`);
-                        cy.wrap(emailInput[0]).type(username, { log: false });
+                        cy.wrap(emailInput[0]).type(email || username, { log: false });
                       } else {
                         cy.log('No email input found.');
                         throw new Error('No email input found on first-time login page');
