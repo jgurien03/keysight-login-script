@@ -1,0 +1,34 @@
+title: "Keysight Test Automation Suite"
+description: "Comprehensive test automation framework for KS8500b PathWave with distributed execution and advanced metrics collection"
+theme: minima
+url: "https://keatonshawhan.github.io"
+baseurl: "/KeysightTestAutomation"
+
+# Jekyll plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  syntax_highlighter: rouge
+
+# Exclude files from processing
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+# Site settings
+author: "Keysight Test Automation Team"
+email: your-email@example.com  
+github_username: user123
+
+# Social links
+github:
+  repository_url: "https://github.com/KeatonShawhan/KeysightTestAutomation"
